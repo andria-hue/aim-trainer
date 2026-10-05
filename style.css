@@ -1,0 +1,711 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap');
+
+:root {
+    --bg-dark: #07090e;
+    --card-bg: rgba(14, 18, 27, 0.78);
+    --border-color: rgba(255, 255, 255, 0.12);
+    --accent-cyan: #00f3ff;
+    --accent-cyan-glow: rgba(0, 243, 255, 0.4);
+    --accent-red: #ff0055;
+    --accent-red-glow: rgba(255, 0, 85, 0.5);
+    --accent-gold: #ffaa00;
+    --text-main: #f0f4f8;
+    --text-muted: #8a96a8;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-main);
+}
+
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* =========================================
+   HUD LAYOUT
+   ========================================= */
+#hud-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* TOP STATS BAR */
+.hud-top-bar {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 32px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    padding: 10px 32px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+}
+
+.stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.1;
+}
+
+.stat-box.streak-box .stat-value {
+    color: var(--accent-gold);
+    text-shadow: 0 0 12px rgba(255, 170, 0, 0.4);
+}
+
+.stat-box.score-box .stat-value {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 12px var(--accent-cyan-glow);
+}
+
+/* BOTTOM RIGHT: AMMO & WEAPON INFO */
+.hud-bottom-right {
+    position: absolute;
+    bottom: 32px;
+    right: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.weapon-title-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.weapon-type-badge {
+    background: rgba(0, 243, 255, 0.15);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.weapon-name {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: #ffffff;
+}
+
+.ammo-display-card {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-color);
+    padding: 8px 24px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.ammo-current {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 16px var(--accent-cyan-glow);
+    line-height: 1;
+}
+
+.ammo-reserve {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* RELOADING BAR */
+.reload-indicator {
+    display: none;
+    width: 180px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    margin-top: 4px;
+}
+
+.reload-indicator.active {
+    display: block;
+}
+
+.reload-progress {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-cyan), #ffffff);
+    box-shadow: 0 0 10px var(--accent-cyan);
+}
+
+/* BOTTOM CENTER: WEAPON SELECTOR DOCK */
+.hud-weapon-dock {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    pointer-events: auto;
+}
+
+.slot-btn {
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.slot-btn:hover {
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: translateY(-2px);
+}
+
+.slot-btn.active {
+    border-color: var(--accent-cyan);
+    background: rgba(0, 243, 255, 0.12);
+    box-shadow: 0 0 16px rgba(0, 243, 255, 0.25);
+}
+
+.slot-num {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.15);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #ffffff;
+}
+
+.slot-btn.active .slot-num {
+    background: var(--accent-cyan);
+    color: #000000;
+}
+
+.slot-name {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--text-main);
+    text-transform: uppercase;
+}
+
+/* =========================================
+   CROSSHAIR & HITMARKER
+   ========================================= */
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.15s ease;
+}
+
+#crosshair.scoped {
+    opacity: 0;
+}
+
+.ch-dot {
+    width: 4px;
+    height: 4px;
+    background: #ffffff;
+    border-radius: 50%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+}
+
+.ch-line {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 1px;
+}
+
+.ch-top { width: 2px; height: 7px; top: -11px; left: -1px; }
+.ch-bottom { width: 2px; height: 7px; bottom: -11px; left: -1px; }
+.ch-left { width: 7px; height: 2px; left: -11px; top: -1px; }
+.ch-right { width: 7px; height: 2px; right: -11px; top: -1px; }
+
+/* HITMARKER */
+#hitmarker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.6);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 25;
+    transition: opacity 0.08s ease, transform 0.08s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#hitmarker.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+}
+
+.hm-line {
+    position: absolute;
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+#hitmarker.bullseye .hm-line {
+    background: var(--accent-red);
+    box-shadow: 0 0 8px var(--accent-red);
+}
+
+#hitmarker.headshot .hm-line {
+    background: #ffd700;
+    box-shadow: 0 0 10px #ffd700, 0 0 20px rgba(255, 215, 0, 0.95);
+}
+
+.hm-1 { width: 2px; height: 7px; top: 0; left: 11px; }
+.hm-2 { width: 2px; height: 7px; bottom: 0; left: 11px; }
+.hm-3 { width: 7px; height: 2px; top: 11px; left: 0; }
+.hm-4 { width: 7px; height: 2px; top: 11px; right: 0; }
+
+/* =========================================
+   SNIPER FULLSCREEN SCOPE OVERLAY
+   ========================================= */
+#sniper-scope-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    z-index: 30;
+    transition: opacity 0.15s ease-out;
+    background: radial-gradient(circle at center, transparent 33%, rgba(0, 0, 0, 0.96) 38%, #000000 45%);
+}
+
+#sniper-scope-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.scope-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 620px;
+    height: 620px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 243, 255, 0.35);
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9), 0 0 20px rgba(0, 243, 255, 0.2);
+}
+
+.scope-reticle-cross {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 580px;
+    height: 580px;
+}
+
+.scope-line-h {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: rgba(0, 243, 255, 0.6);
+    transform: translateY(-50%);
+}
+
+.scope-line-v {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: rgba(0, 243, 255, 0.6);
+    transform: translateX(-50%);
+}
+
+.scope-center-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 4px;
+    background: var(--accent-red);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 6px var(--accent-red);
+}
+
+.scope-sub-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+}
+
+.scope-tick {
+    position: absolute;
+    background: rgba(0, 243, 255, 0.5);
+}
+
+.scope-tick-y1 { width: 14px; height: 1px; left: 93px; top: 70px; }
+.scope-tick-y2 { width: 20px; height: 1px; left: 90px; top: 130px; }
+.scope-tick-x1 { width: 1px; height: 14px; top: 93px; left: 70px; }
+.scope-tick-x2 { width: 1px; height: 14px; top: 93px; left: 130px; }
+
+.scope-hud-text {
+    position: absolute;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: 2px;
+}
+
+.scope-zoom-text { top: 60px; left: 70px; }
+.scope-range-text { bottom: 60px; right: 70px; }
+
+/* =========================================
+   FLOATING COMBAT SCORES
+   ========================================= */
+#floating-ui-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 22;
+}
+
+.floating-score-text {
+    position: absolute;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    transform: translate(-50%, -50%);
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+}
+
+.floating-score-text.headshot {
+    font-size: 26px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 12px #ffd700, 0 0 24px rgba(255, 215, 0, 0.8), 0 0 4px #000000;
+}
+
+/* =========================================
+   START / PAUSE / SETTINGS MODAL
+   ========================================= */
+#pause-modal {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(5, 7, 12, 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+#pause-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 36px 44px;
+    width: 580px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.modal-header {
+    text-align: center;
+}
+
+.game-title {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: #ffffff;
+    text-transform: uppercase;
+}
+
+.game-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+}
+
+.training-modes-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.mode-buttons-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.mode-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    padding: 12px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+}
+
+.mode-btn.active {
+    background: rgba(0, 243, 255, 0.15);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px var(--accent-cyan-glow);
+}
+
+.settings-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px 16px;
+    border-radius: 8px;
+}
+
+.setting-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.setting-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.setting-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.setting-val-display {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 140px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* CONTROLS GUIDE */
+.controls-guide-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.ctrl-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ctrl-key {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    color: #ffffff;
+}
+
+.ctrl-desc {
+    color: var(--text-muted);
+}
+
+.btn-primary-play {
+    background: linear-gradient(135deg, #00f3ff, #0088ff);
+    color: #050811;
+    border: none;
+    padding: 16px;
+    border-radius: 12px;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 6px 20px rgba(0, 243, 255, 0.35);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-primary-play:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 243, 255, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-primary-play:active {
+    transform: translateY(0);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 4px;
+}
+
+.btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+}

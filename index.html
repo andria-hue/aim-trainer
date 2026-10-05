@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberAim FPS - 3D Aim Training</title>
+    <meta name="description" content="A 3D tactical FPS aim trainer featuring scoped rifle, automatic rifle, pistol, dynamic targets, and ammo mechanics.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <!-- 3D WebGL Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating 3D Hit Numbers & Notifications -->
+    <div id="floating-ui-container"></div>
+
+    <!-- Standard Hipfire / Reflex Crosshair -->
+    <div id="crosshair">
+        <div class="ch-dot"></div>
+        <div class="ch-line ch-top"></div>
+        <div class="ch-line ch-bottom"></div>
+        <div class="ch-line ch-left"></div>
+        <div class="ch-line ch-right"></div>
+    </div>
+
+    <!-- Hitmarker (Flashes on target hit) -->
+    <div id="hitmarker">
+        <div class="hm-line hm-1"></div>
+        <div class="hm-line hm-2"></div>
+        <div class="hm-line hm-3"></div>
+        <div class="hm-line hm-4"></div>
+    </div>
+
+    <!-- Fullscreen Sniper Telescopic Scope Overlay -->
+    <div id="sniper-scope-overlay">
+        <div class="scope-ring">
+            <div class="scope-reticle-cross">
+                <div class="scope-line-h"></div>
+                <div class="scope-line-v"></div>
+                <div class="scope-center-dot"></div>
+                <div class="scope-sub-lines">
+                    <div class="scope-tick scope-tick-y1"></div>
+                    <div class="scope-tick scope-tick-y2"></div>
+                    <div class="scope-tick scope-tick-x1"></div>
+                    <div class="scope-tick scope-tick-x2"></div>
+                </div>
+            </div>
+            <div class="scope-hud-text scope-zoom-text">MAG: 12X</div>
+            <div class="scope-hud-text scope-range-text">RANGE: 25M</div>
+        </div>
+    </div>
+
+    <!-- Main HUD Overlay -->
+    <div id="hud-overlay">
+        <!-- Top Stats Bar -->
+        <div class="hud-top-bar">
+            <div class="stat-box score-box">
+                <span class="stat-label">Score</span>
+                <span class="stat-value" id="hud-score">0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Accuracy</span>
+                <span class="stat-value" id="hud-accuracy">100%</span>
+            </div>
+            <div class="stat-box streak-box">
+                <span class="stat-label">Streak</span>
+                <span class="stat-value" id="hud-streak">x0</span>
+            </div>
+            <div class="stat-box">
+                <span class="stat-label">Hits / Shots</span>
+                <span class="stat-value" id="hud-hits">0 / 0</span>
+            </div>
+        </div>
+
+        <!-- Bottom Weapon Dock -->
+        <div class="hud-weapon-dock">
+            <div class="slot-btn active" data-weapon="rifle" id="slot-1">
+                <span class="slot-num">1</span>
+                <span class="slot-name">ARC-4 Rifle</span>
+            </div>
+            <div class="slot-btn" data-weapon="pistol" id="slot-2">
+                <span class="slot-num">2</span>
+                <span class="slot-name">APEX-9 Pistol</span>
+            </div>
+            <div class="slot-btn" data-weapon="sniper" id="slot-3">
+                <span class="slot-num">3</span>
+                <span class="slot-name">Titan .50 Sniper</span>
+            </div>
+        </div>
+
+        <!-- Bottom Right Ammo & Weapon Info -->
+        <div class="hud-bottom-right">
+            <div class="weapon-title-card">
+                <span class="weapon-type-badge" id="hud-weapon-type">FULL-AUTO</span>
+                <span class="weapon-name" id="hud-weapon-name">ARC-4 ASSAULT RIFLE</span>
+            </div>
+            <div class="ammo-display-card">
+                <span class="ammo-current" id="hud-current-ammo">30</span>
+                <span class="ammo-reserve" id="hud-reserve-ammo">/ 150</span>
+            </div>
+            <div class="reload-indicator" id="reload-indicator">
+                <div class="reload-progress" id="reload-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start / Pause / Settings Modal Overlay -->
+    <div id="pause-modal" class="active">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="game-title">CyberAim FPS</h1>
+                <p class="game-subtitle">Tactical 3D Target Training & Weapon Handling</p>
+            </div>
+
+            <!-- Training Mode Selection -->
+            <div class="training-modes-group">
+                <div class="section-label">Training Mode</div>
+                <div class="mode-buttons-row">
+                    <button class="mode-btn active" data-mode="gridshot">GRIDSHOT</button>
+                    <button class="mode-btn" data-mode="tracking">TRACKING</button>
+                    <button class="mode-btn" data-mode="reflex">REFLEX POP</button>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="settings-group">
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Mouse Sensitivity</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span class="setting-val-display" id="sens-value">2.2</span>
+                        <input type="range" id="setting-sens" min="0.5" max="8.0" step="0.1" value="2.2">
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Scoped Sensitivity</span>
+                        <span class="setting-sub">ADS &amp; Sniper Zoom Multiplier</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span class="setting-val-display" id="scoped-sens-value">0.35x</span>
+                        <input type="range" id="setting-scoped-sens" min="0.10" max="1.00" step="0.05" value="0.35">
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Master Volume</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <span class="setting-val-display" id="volume-value">40%</span>
+                        <input type="range" id="setting-volume" min="0" max="100" step="5" value="40">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Cheat Sheet -->
+            <div class="controls-guide-grid">
+                <div class="ctrl-item">
+                    <span class="ctrl-key">WASD</span>
+                    <span class="ctrl-desc">Move / Strafe</span>
+                </div>
+                <div class="ctrl-item">
+                    <span class="ctrl-key">LMB</span>
+                    <span class="ctrl-desc">Shoot (Hold for Auto)</span>
+                </div>
+                <div class="ctrl-item">
+                    <span class="ctrl-key">RMB</span>
+                    <span class="ctrl-desc">Aim Down Sights / Scope</span>
+                </div>
+                <div class="ctrl-item">
+                    <span class="ctrl-key">R</span>
+                    <span class="ctrl-desc">Reload Magazine</span>
+                </div>
+                <div class="ctrl-item">
+                    <span class="ctrl-key">1, 2, 3</span>
+                    <span class="ctrl-desc">Switch Weapon</span>
+                </div>
+                <div class="ctrl-item">
+                    <span class="ctrl-key">ESC</span>
+                    <span class="ctrl-desc">Pause / Settings Menu</span>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <button class="btn-primary-play" id="btn-play">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                CLICK TO START TRAINING
+            </button>
+
+            <div class="modal-footer">
+                <span style="font-size:11px; color:var(--text-muted);">Shoot yellow crates on side stalls for extra ammo</span>
+                <button class="btn-secondary" id="btn-reset-stats">Reset Stats</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Scripts -->
+    <script src="audio.js"></script>
+    <script src="weapons.js"></script>
+    <script src="targets.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
